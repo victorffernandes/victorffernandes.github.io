@@ -7,14 +7,14 @@
     "about": "Sobre",
     "projects": "Projetos",
     "blog": "Blog",
-    "support": "Suporte",
+    "support": "Doação",
     "toggleMenu": "Alternar menu"
   },
   "pages": {
     "about": { "title": "Sobre" },
     "projects": { "title": "Projetos" },
     "blog": { "title": "Blog" },
-    "support": { "title": "Suporte" }
+    "support": { "title": "Doação" }
   },
   "error": {
     "title": "Página não encontrada",

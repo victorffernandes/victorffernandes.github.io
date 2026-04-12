@@ -7,14 +7,14 @@
     "about": "About",
     "projects": "Projects",
     "blog": "Blog",
-    "support": "Support",
+    "support": "Donate",
     "toggleMenu": "Toggle menu"
   },
   "pages": {
     "about": { "title": "About" },
     "projects": { "title": "Projects" },
     "blog": { "title": "Blog" },
-    "support": { "title": "Support" }
+    "support": { "title": "Donate" }
   },
   "error": {
     "title": "Page not found",

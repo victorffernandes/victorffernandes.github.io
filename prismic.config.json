@@ -1,0 +1,9 @@
+{
+  "repositoryName": "victorffernandes",
+  "routes": [
+    {
+      "type": "post",
+      "path": "/blog/post/:uid"
+    }
+  ]
+}
