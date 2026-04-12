@@ -4,5 +4,5 @@
 </script>
 
 <main class="mx-auto max-w-7xl px-container py-section">
-	<SectionHeading>{$t.pages.about.title}</SectionHeading>
+	<SectionHeading>{$t.pages.support.title}</SectionHeading>
 </main>

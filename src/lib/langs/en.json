@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "name": "English",
+    "flag": "🇺🇸"
+  },
+  "nav": {
+    "about": "About",
+    "projects": "Projects",
+    "blog": "Blog",
+    "support": "Support",
+    "toggleMenu": "Toggle menu"
+  },
+  "pages": {
+    "about": { "title": "About" },
+    "projects": { "title": "Projects" },
+    "blog": { "title": "Blog" },
+    "support": { "title": "Support" }
+  }
+}
