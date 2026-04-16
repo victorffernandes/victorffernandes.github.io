@@ -1,13 +1,15 @@
 <script lang="ts">
 	import Dropdown from 'flowbite-svelte/Dropdown.svelte';
 	import DropdownItem from 'flowbite-svelte/DropdownItem.svelte';
-	import { locale, setLocale, localeMap, availableLocales } from '$lib/stores/locale.store';
+	import { locale, setLocale, localeMap, availableLocales, initLocale } from '$lib/stores/locale.store';
 
 	interface Props {
 		class?: string;
 	}
 
 	let { class: className = '' }: Props = $props();
+
+	initLocale()
 
 	let isOpen = $state(false);
 </script>

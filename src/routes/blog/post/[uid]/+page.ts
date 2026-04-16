@@ -1,14 +1,18 @@
-import { getPost, getPostUids } from '$lib/data';
+import { getPost, getPostUids, localeToLang } from '$lib/data';
+import { locale } from '$lib/stores/locale.store';
+import { get } from 'svelte/store';
 import type { PageLoad } from './$types';
 
 export const prerender = true;
 
 export const entries = async () => {
-	const uids = await getPostUids();
+	const lang = localeToLang(get(locale));
+	const uids = await getPostUids(lang);
 	return uids.map((uid) => ({ uid }));
 };
 
 export const load: PageLoad = async ({ params }) => {
-	const post = await getPost(params.uid);
+	const lang = localeToLang(get(locale));
+	const post = await getPost(params.uid, lang);
 	return { post };
 };

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { BlogPost } from '$lib/types';
 	import type { PageProps } from './$types';
-	import { SectionHeading, AppBadge, AppButton } from '$lib/components/atoms';
-	import { t } from '$lib/stores/locale.store';
+	import { SectionHeading, AppBadge } from '$lib/components/atoms';
 
 	const { data }: PageProps = $props();
 	const post: BlogPost = data.post;
