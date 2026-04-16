@@ -1,0 +1,38 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# Never commit terraform.tfvars or *.pem to version control.
+
+tenancy_ocid     = "ocid1.tenancy.oc1..xxx"
+user_ocid        = "ocid1.user.oc1..xxx"
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+compartment_id   = "ocid1.compartment.oc1..xxx"
+ssh_public_key   = "ssh-ed25519 AAAA... user@host"
+
+# Compute sizing (defaults match OCI Always Free A1.Flex limits)
+instance_ocpus      = 4
+instance_memory_gb  = 24
+boot_volume_size_gb = 100
+instance_name       = "qwen3-inference"
+
+# Ollama base model tag to pull from the Ollama library
+base_model = "qwen3:0.6b"
+
+# Ollama model alias — the name used when calling the API after prompts are baked in
+model_alias = "qwen3-custom"
+
+# Security rules: what the model must and must not do.
+# Applied via the Modelfile SYSTEM directive — treated as authoritative by the model.
+system_prompt = <<-EOT
+  You are a helpful assistant.
+EOT
+
+# Domain context: background knowledge the model should treat as established fact.
+# Injected as pre-seeded conversation history so the model "already knows" it.
+context_prompt = <<-EOT
+  You are deployed as an assistant
+EOT
+
+# HMAC secret for nginx-captcha cookie signing — use a strong random string.
+# Generate one with: openssl rand -hex 32
+captcha_secret = "REPLACE_ME_strong_random_string"
