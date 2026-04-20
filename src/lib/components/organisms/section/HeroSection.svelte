@@ -4,7 +4,8 @@
 
 	const socialLinks = [
 		{ platform: 'linkedin' as const, href: 'https://linkedin.com/in/victorfariafernandes', ariaLabel: 'LinkedIn' },
-		{ platform: 'github' as const, href: 'https://github.com/victorffernandes', ariaLabel: 'GitHub' }
+		{ platform: 'github' as const, href: 'https://github.com/victorffernandes', ariaLabel: 'GitHub' },
+		{ platform: 'lattes' as const, href: 'https://lattes.cnpq.br/9451661177927960', ariaLabel: 'Lattes' }
 	];
 </script>
 
