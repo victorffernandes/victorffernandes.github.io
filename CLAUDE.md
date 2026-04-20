@@ -22,6 +22,32 @@ The static adapter is configured with `fallback: '404.html'` in `svelte.config.j
 
 > Do not change `fallback` back to `undefined` — this breaks direct URL navigation and page refreshes on non-root routes.
 
+## Infrastructure
+
+Alongside the GitHub Pages site, there is a companion self-hosted LLM backend provisioned with **Terraform** on **Oracle Cloud Infrastructure (OCI)**.
+
+**Purpose:** power a chatbot feature on the portfolio. Visitors can ask questions about Victor's background and experience; the LLM answers using a pre-seeded context built from `site-llm-context.md`.
+
+**Setup:**
+- **Cloud:** OCI ARM64 VM (`VM.Standard.A1.Flex`, free tier: 4 OCPUs, 24 GB RAM, 100 GB boot)
+- **OS:** Ubuntu 22.04, bootstrapped via cloud-init
+- **Stack:** Docker Compose with two services:
+  - `ollama` — LLM inference server (internal port 11434, never exposed)
+  - `nginx` — reverse proxy (public port 80), with HMAC captcha cookie validation
+- **Model:** configurable via `base_model` variable (default `qwen3:0.6b`). A custom Ollama Modelfile bakes in `system_prompt` (behavioral constraints) and `context_prompt` (Victor's professional profile from `site-llm-context.md`) as pre-seeded conversation history.
+
+**Key files:**
+- `terraform/main.tf` — OCI provider config, image lookup, module wiring
+- `terraform/resources/compute.tf` — VM resource, cloud-init template rendering
+- `terraform/resources/network.tf` — VCN, subnet, security list (ports 22/SSH, 80/HTTP, ICMP open)
+- `terraform/templates/cloud-init.yaml.tpl` — bootstrap script (Docker install, Compose startup)
+- `terraform/templates/docker-compose.yml` — Ollama + Nginx service definitions
+- `terraform/templates/nginx/nginx.conf` — reverse proxy config with captcha signing
+
+**Credentials:** `terraform/variables/terraform.tfvars` is git-ignored. An example file is committed for reference; copy it, fill in real OCI credentials and captcha secret, and use it with `terraform plan -var-file=...`.
+
+> **State management:** `terraform/terraform.tfstate` is committed to the repo. This is a security risk if it contains secrets — ensure all sensitive values are in `.tfvars` files, not committed to state.
+
 ## Commands
 
 ```bash
@@ -35,14 +61,13 @@ npm run check      # svelte-check type checking (0 errors expected)
 
 | Route | File | Intended content |
 |-------|------|-----------------|
-| `/` | `src/routes/+page.svelte` | About — personal bio, intro, skills summary |
-| `/projects` | `src/routes/projects/+page.svelte` | Portfolio grid of all projects |
-| `/blog` | `src/routes/blog/+page.svelte` | Scrollable list of blog posts |
-| `/support` | `src/routes/support/+page.svelte` | Donation / sponsorship initializer |
+| `/` | `src/routes/+page.svelte` | Hero intro, about bio, experience timeline, education timeline |
+| `/blog` | `src/routes/blog/+page.svelte` | Scrollable list of blog posts fetched from Prismic CMS |
+| `/blog/post/[uid]` | `src/routes/blog/post/[uid]/+page.svelte` | Individual blog post detail, prerendered from Prismic UIDs |
 
-Each page imports `SectionHeading` from atoms and its title from `$t.pages.<page>.title`. Page titles live in the `pages` namespace of the translation files (`src/lib/langs/`). Add new page-level strings there, not as raw text in components.
+Each page imports `SectionHeading` from atoms, wraps content with `SeoHead` for SEO metadata, and sources titles from `$t.pages.<page>.title`. Page titles live in the `pages` namespace of the translation files (`src/lib/langs/`). Add new page-level strings there, not as raw text in components.
 
-All routes are pre-rendered (`export const prerender = true` in `src/routes/+layout.ts`).
+All routes are pre-rendered. The root layout sets `export const prerender = true` in `src/routes/+layout.ts`; the blog post detail route (`/blog/post/[uid]`) re-declares it and exports `entries()` to enumerate all post UIDs from Prismic.
 
 ---
 
@@ -63,8 +88,8 @@ Each folder has an `index.ts` barrel. Always import from the barrel, not the fil
 ```ts
 // correct
 import { AppButton, AppBadge } from '$lib/components/atoms';
-import { ProjectCard } from '$lib/components/molecules';
-import { ProjectsSection } from '$lib/components/organisms';
+import { BlogPostCard } from '$lib/components/molecules';
+import { HeroSection } from '$lib/components/organisms';
 
 // wrong — bypasses the barrel
 import AppButton from '$lib/components/atoms/AppButton.svelte';
@@ -99,12 +124,37 @@ Atoms define their own `interface Props` (no `extends` on flowbite types — it 
 
 > **Do not import flowbite-svelte components from the main package index** (`import { Button } from 'flowbite-svelte'`). The main index comments out most components. Import from the component path: `import Button from 'flowbite-svelte/Button.svelte'`. Same for `ThemeProvider`: `import ThemeProvider from 'flowbite-svelte/ThemeProvider.svelte'`.
 
+#### Atoms in use
+
+- `AppButton`, `AppBadge`, `AppAvatar`, `AppSpinner`, `SectionHeading` — flowbite wrappers (documented by the pattern above)
+- `SeoHead` — SEO metadata injector. Injects `<svelte:head>` with Open Graph, Twitter Card, canonical URL, and `og:locale` (reactive to `$locale`). Props: `title`, `description`, `canonicalUrl`, `siteName`, `type?` (`'website' | 'article'`), `imageUrl?`, `twitterCard?`, `noIndex?`. Used in every route.
+- `ContactButton` — CTA link to `/blog`, label from `$t.nav.blog`. No props beyond `class`.
+- `SocialBadge` — icon link for social platforms (`'linkedin' | 'github' | 'lattes'`). Props: `platform`, `href`. Uses inline SVG for LinkedIn/GitHub, imports `lattes.png` for Lattes.
+
+#### Molecules in use
+
+- `ProjectCard` — portfolio card (documented by architecture above)
+- `LocaleSwitcher` — language selector dropdown; iterates `availableLocales`, calls `setLocale()` on selection. Props: `class`.
+- `SectionTitle` — `SectionHeading` with a horizontal gradient accent line. Props: `title`, `reversed?` (boolean, flips accent side).
+- `BlogPostCard` — blog listing card. Props: `post: BlogPost`. Renders cover, title, description, tags; links to `/blog/post/{post.uid}`.
+- `TimelineTrack` — vertical timeline connector (line + dot). Props: `isLast?` (boolean, hides line on final entry).
+
+#### Organisms in use
+
+- `NavBar` — top navigation bar. Desktop: `LocaleSwitcher` left, nav links + `ContactButton` right. Mobile: hamburger toggle → slide-down menu. Uses `$app/state`'s `page` for active-link detection. Includes smooth-scroll logic for in-page anchors (`/#experience`, `/#education`).
+- `Timeline` — vertical timeline layout. Props: `items: TimelineItem[]`, `orientation: 'left-right' | 'right-left'`. CSS grid with date column, `TimelineTrack`, and content column; orientation flips which holds dates.
+- `HeroSection` — hero intro section. Renders name, subtitle, and role from `$t.pages.about`. Column of `SocialBadge` links (LinkedIn, GitHub, Lattes). No props.
+- `AboutSection` — personal bio section. Renders portrait image (`$lib/assets/portrait.png`) alongside bio text (`$t.pages.about.content` split on `\n\n` into paragraphs). No props.
+- `ExperienceSection` — work experience timeline. `SectionTitle` + `Timeline orientation="left-right"` using `$t.pages.experience.items`. No props.
+- `EducationSection` — education timeline. `SectionTitle reversed` + `Timeline orientation="right-left"` using `$t.pages.education.items`. No props.
+
 ### Types — `src/lib/types/`
 
 | File | Contents |
 |------|----------|
-| `portfolio.types.ts` | Domain interfaces: `Project`, and future `Skill`, `ExperienceItem`, `SocialLink` |
+| `portfolio.types.ts` | Domain interfaces: `TimelineItem`, `ExperienceItem`, `EducationItem`, `BlogPost` |
 | `store.types.ts` | `AsyncState<T>` discriminated union + `idle / loading / success / error` constructors |
+| `i18n.types.ts` | `Translations` interface (enforces shape across locales); includes `seo` namespace for SEO metadata |
 
 All types are re-exported from `src/lib/types/index.ts`. Import from `$lib/types`:
 
@@ -117,62 +167,38 @@ import { success, loading, error } from '$lib/types';
 
 ### Data — `src/lib/data/`
 
-Static, typed content arrays. Each file exports a single named `const` of the matching domain type. Data is pre-loaded — no async fetching at this layer.
+Content is fetched from Prismic CMS, not stored as static arrays. The data layer is **async**.
 
-```ts
-// src/lib/data/projects.ts
-import type { Project } from '$lib/types';
+**`src/lib/data/blog.ts`** exports:
+- `getPost(uid: string, lang: string)` — fetch a single blog post by UID and language
+- `getAllPosts(lang: string)` — fetch all blog posts for a language
+- `getPostUids()` — fetch all post UIDs (used by `+page.ts` `entries()` for static prerendering)
+- `localeToLang(locale: Locale)` — map locale BCP 47 tag to Prismic language code
 
-export const projects: Project[] = [
-  {
-    id: 'my-project',           // unique slug, used as key in #each
-    title: 'My Project',
-    description: 'Short description.',
-    tags: ['TypeScript', 'SvelteKit'],
-    repoUrl: 'https://github.com/victorffernandes/my-project',
-    liveUrl: 'https://my-project.vercel.app',
-    featured: true              // shown in featuredProjects derived store
-  }
-];
-```
-
-**Adding a new content type** (e.g. skills): create `src/lib/data/skills.ts`, add an entry to `src/lib/data/index.ts`, add the `Skill` interface to `portfolio.types.ts`.
+Both Svelte load functions (`+page.ts`) and components can call these async functions. Routes using async data declare `export const prerender = true` and export an `entries()` function to pre-enumerate all possible values (e.g. all blog post UIDs).
 
 ### Stores — `src/lib/stores/`
 
-Stores expose `AsyncState<T>` via Svelte `writable`. Data files are the source — stores initialize already in `success` state, so components never have to handle a loading screen for purely static content.
-
-```ts
-// src/lib/stores/projects.store.ts
-const _state = writable<AsyncState<Project[]>>(success(staticProjects));
-export const projectsStore = { subscribe: _state.subscribe }; // read-only public surface
-export const featuredProjects = derived(_state, (state) => ...); // convenience derived
-```
+Stores are reactive containers for shared state: UI state (`activeSection`, `isDarkMode`) and locale/translations (`currentLocale`, `t`).
 
 | Store | File | Exported |
 |-------|------|----------|
-| Projects | `projects.store.ts` | `projectsStore`, `featuredProjects` |
 | UI | `ui.store.ts` | `activeSection`, `isDarkMode`, `initDarkMode()`, `toggleDarkMode()` |
+| Locale | `locale.store.ts` | `t` (reactive translations), `initLocale()`, `setLocale(locale)`, `currentLocale` |
 
-**Using a store in a component** (Svelte 5 runes, `$store` syntax still works):
+**Using a store in a component** (Svelte 5 runes, `$store` syntax auto-subscribes):
 
 ```svelte
 <script lang="ts">
-  import { projectsStore } from '$lib/stores/projects.store';
+  import { t } from '$lib/stores/locale.store';
+  import { isDarkMode } from '$lib/stores/ui.store';
 </script>
 
-{#if $projectsStore.status === 'loading'}
-  <AppSpinner />
-{:else if $projectsStore.status === 'error'}
-  <p>{$projectsStore.error}</p>
-{:else if $projectsStore.status === 'success'}
-  {#each $projectsStore.data as project (project.id)}
-    <ProjectCard {project} />
-  {/each}
-{/if}
+<p>{$t.pages.about.title}</p>
+<p>Dark mode: {$isDarkMode}</p>
 ```
 
-**Adding a new store:** create `src/lib/stores/<domain>.store.ts`, initialize with `success(staticData)` for static content, export it from `src/lib/stores/index.ts`.
+**Adding a new store:** create `src/lib/stores/<domain>.store.ts`, export it from `src/lib/stores/index.ts`. If the store wraps `AsyncState<T>` (data from an async source), initialize with an `idle`, `loading`, `success`, or `error` state and update it as fetches complete.
 
 ### Internationalization — `src/lib/langs/`
 
@@ -217,6 +243,46 @@ Access is via dot notation on the reactive `$t` object — fully type-safe, no f
 ```
 
 To switch locale programmatically, call `setLocale('pt')` from `$lib/stores/locale.store`.
+
+### CMS — Prismic
+
+Blog and project content is hosted in **Prismic**, a headless CMS.
+
+**Key files:**
+- `prismic.config.json` — repo name `victorffernandes`, routes for `post` and `project` content types
+- `prismicio-types.d.ts` (root) — generated type declarations; **do not edit manually**
+- `src/lib/prismicio.ts` — exports `createClient()` wrapper and `repositoryName` constant
+- `src/lib/slices/index.ts` — Prismic slice registry (generated; currently empty)
+
+**Fetching content:**
+
+```ts
+// src/lib/data/blog.ts
+import { createClient } from '$lib/prismicio';
+
+const client = createClient();
+const allPosts = await client.getAllByType('post', { lang: 'en-us' });
+const singlePost = await client.getByUID('post', 'my-post-uid', { lang: 'en-us' });
+```
+
+Use `localeToLang(locale)` to map locale BCP 47 tags (`'en'`, `'pt'`) to Prismic language codes (`'en-us'`, `'pt-br'`).
+
+### Config — `src/lib/config/`
+
+- `site.ts` — exports `SITE_URL = 'https://victorffernandes.github.io'`. Used by `SeoHead` to build canonical URLs.
+
+### Assets — `src/lib/assets/`
+
+Static images and favicon:
+- `portrait.png` — used by `AboutSection`
+- `lattes.png` — Lattes platform icon, used by `SocialBadge`
+- Favicon set: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `apple-touch-icon.png`
+
+Import assets with the Svelte asset import syntax:
+
+```ts
+import portrait from '$lib/assets/portrait.png';
+```
 
 ---
 
