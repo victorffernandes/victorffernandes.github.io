@@ -3,7 +3,7 @@
 	import { SectionTitle } from '$lib/components/molecules';
 </script>
 
-<section class="mx-auto flex max-w-7xl flex-col gap-12 px-container py-section md:flex-row md:items-center">
+<section id="about-me" class="mx-auto flex max-w-7xl flex-col gap-12 px-container py-section md:flex-row md:items-center">
 
 	<!-- Portrait with displaced frame -->
 	<div class="w-full shrink-0 md:w-95">

@@ -4,6 +4,10 @@
 @source "../../node_modules/flowbite-svelte/dist";
 @source "../../node_modules/flowbite-svelte-icons/dist";
 
+html {
+	scroll-behavior: smooth;
+}
+
 @theme {
 	/* Primary — brand blue, resolves Flowbite's primary-* utilities */
 	--color-primary-50: #E0F9FF;

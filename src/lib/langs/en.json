@@ -2,6 +2,8 @@
   "nav": {
     "about": "About Me",
     "projects": "Projects",
+    "experience": "Experience",
+    "education": "Education",
     "blog": "Blog",
     "contact": "Contact",
     "toggleMenu": "Toggle menu"

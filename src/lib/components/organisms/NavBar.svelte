@@ -6,7 +6,9 @@
 
 	const navLinks = $derived([
 		{ label: $t.nav.about, href: '/' },
-		{ label: $t.nav.projects, href: '/projects' },
+		// { label: $t.nav.projects, href: '/projects' },
+		{ label: $t.nav.experience, href: '/#experience' },
+		{ label: $t.nav.education, href: '/#education' },
 		{ label: $t.nav.blog, href: '/blog' }
 	]);
 
@@ -14,6 +16,19 @@
 
 	function isActive(href: string): boolean {
 		return page.url.pathname === href;
+	}
+
+	function handleNavClick(href: string) {
+		menuOpen = false;
+
+		// Handle anchor links with smooth scroll
+		if (href.startsWith('/#')) {
+			const sectionId = href.slice(2);
+			const section = document.getElementById(sectionId);
+			if (section) {
+				section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}
 	}
 </script>
 
@@ -31,6 +46,12 @@
 							class="text-sm font-medium transition-colors {isActive(link.href)
 								? 'text-secondary-300'
 								: 'text-secondary-600 hover:text-primary-500'}"
+							onclick={(e) => {
+								if (link.href.startsWith('/#')) {
+									e.preventDefault();
+									handleNavClick(link.href);
+								}
+							}}
 						>
 							{link.label}
 						</a>
@@ -63,7 +84,14 @@
 							class="block py-2 text-sm font-medium transition-colors {isActive(link.href)
 								? 'text-secondary-300'
 								: 'text-secondary-600 hover:text-primary-500'}"
-							onclick={() => (menuOpen = false)}
+							onclick={(e) => {
+								if (link.href.startsWith('/#')) {
+									e.preventDefault();
+									handleNavClick(link.href);
+								} else {
+									menuOpen = false;
+								}
+							}}
 						>
 							{link.label}
 						</a>

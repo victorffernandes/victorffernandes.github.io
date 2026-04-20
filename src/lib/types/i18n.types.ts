@@ -7,6 +7,8 @@ export interface Translations {
 		about: string;
 		projects: string;
 		blog: string;
+		experience: string;
+		education: string;
 		contact: string;
 		toggleMenu: string;
 	};

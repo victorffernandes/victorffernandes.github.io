@@ -4,7 +4,7 @@
 	import Timeline from '../Timeline.svelte';
 </script>
 
-<section class="mx-auto max-w-7xl px-container py-section">
+<section id="education" class="mx-auto max-w-7xl px-container py-section">
 	<SectionTitle reversed>{$t.pages.education.title}</SectionTitle>
 	<Timeline items={$t.pages.education.items} orientation="right-left" />
 </section>
