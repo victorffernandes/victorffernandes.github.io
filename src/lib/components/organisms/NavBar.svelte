@@ -9,7 +9,6 @@
 		// { label: $t.nav.projects, href: '/projects' },
 		{ label: $t.nav.experience, href: '/#experience' },
 		{ label: $t.nav.education, href: '/#education' },
-		{ label: $t.nav.blog, href: '/blog' }
 	]);
 
 	let menuOpen = $state(false);

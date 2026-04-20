@@ -35,7 +35,7 @@
 	{/if}
 
 	{#if post.content}
-		<div class="prose dark:prose-invert mt-8 max-w-none">
+		<div class="prose dark:prose-invert mt-8 max-w-none text-white">
 			{@html post.content}
 		</div>
 	{/if}
